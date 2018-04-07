@@ -1,8 +1,22 @@
 let webpack = require('webpack');
 let path = require('path');
 let htmlWebpackPlugin = require('html-webpack-plugin');
+let extractTextWebpackPlugin= require('extract-text-webpack-plugin');
 
-module.exports = ({
+module.exports = (env,argv) =>{
+
+    let isProd = argv.mode.toLowerCase() === 'production';
+    let devtool ='eval-source-map'; 
+    if(isProd) {
+        devtool='source-map'; 
+    }
+
+    let extractSass = new extractTextWebpackPlugin({
+        filename:'[name].[hash].css',
+        disable:isProd 
+    })
+    
+return ({    
     entry:{
         main:'./src/main.ts',
         polyfills:'./src/polyfills.js',
@@ -13,7 +27,7 @@ module.exports = ({
     },
     output:{
         path:__dirname+'/dist',
-        filename:'[name].[hash].min.js'
+        filename:'scripts/[name].[hash].min.js'
     },
     module:{
         rules:[
@@ -24,17 +38,46 @@ module.exports = ({
             {
                 test:/\.html$/,
                 loader:'html-loader'
+            },
+            {
+                test:/\.(scss|sass)$/,
+                use:extractSass.extract({
+                    use:[
+                        {
+                            loader:'css-loader'
+                        }, {
+                            loader:'sass-loader'
+                        }
+                    ],
+                    fallback:'style-loader'
+                })
             }
         ]
-
     },
     plugins:[
+        new webpack.DefinePlugin({
+            'process.env':{
+                'mode':JSON.stringify(argv.mode)
+            }
+        }),
         new htmlWebpackPlugin({
             title:'base',
             template:'./src/public/index.html',
             chunksSortMode:'dependency'
-        })
+        }),
+        //plugin to remove the warnings coming to console while running the app
+        /* sample of warning
+         *  VM22 client:141 [WDS] Warnings while compiling.
+            warnings @ VM22 client:141
+            21:58:34.333 VM22 client:147 ./node_modules/@angular/core/esm5/core.js
+            6558:15-29 Critical dependency: the request of a dependency is an expression
+            @ ./node_modules/@angular/core/esm5/core.js
+            @ ./src/vendor.js
+            @ multi (webpack)-dev-server/client?http://localhost:9090 ./src/vendor.js
+        */
+        new webpack.ContextReplacementPlugin(/\@angular(\\|\/)core(\\|\/)esm5/, root('./src'))
     ],
+    devtool:devtool,
     devServer:{
         port:'9090',
         quiet:false,
@@ -42,11 +85,12 @@ module.exports = ({
         stats:'normal'
     }
 
-});
+})
 
-let root = function(path){
 
 }
 
-
-
+function root(args) { 
+    args = Array.prototype.slice.call(arguments,0);
+    return path.join.apply(path,[__dirname].concat(args));
+}
