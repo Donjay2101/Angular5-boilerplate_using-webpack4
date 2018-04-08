@@ -12,13 +12,13 @@ module.exports = (env,argv) =>{
     }
 
     let extractSass = new extractTextWebpackPlugin({
-        filename:'[name].[hash].css',
-        disable:isProd 
+        filename:'css/[name].[hash].css',
+        allChunks: true,
     })
     
 return ({    
     entry:{
-        main:'./src/main.ts',
+        main:['./src/main.ts','./src/style/app.scss'],
         polyfills:'./src/polyfills.js',
         vendor:'./src/vendor.js'
     },
@@ -75,7 +75,8 @@ return ({
             @ ./src/vendor.js
             @ multi (webpack)-dev-server/client?http://localhost:9090 ./src/vendor.js
         */
-        new webpack.ContextReplacementPlugin(/\@angular(\\|\/)core(\\|\/)esm5/, root('./src'))
+        new webpack.ContextReplacementPlugin(/\@angular(\\|\/)core(\\|\/)esm5/, root('./src')),
+        extractSass
     ],
     devtool:devtool,
     devServer:{
@@ -85,7 +86,7 @@ return ({
         stats:'normal'
     }
 
-})
+});
 
 
 }
