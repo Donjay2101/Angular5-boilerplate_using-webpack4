@@ -2,7 +2,7 @@ let webpack = require('webpack');
 let path = require('path');
 let htmlWebpackPlugin = require('html-webpack-plugin');
 let extractTextWebpackPlugin= require('extract-text-webpack-plugin');
-
+let boostrapConfig = require('././webpack.bootstrap.config.js');
 module.exports = (env,argv) =>{
 
     let isProd = argv.mode.toLowerCase() === 'production';
@@ -14,13 +14,17 @@ module.exports = (env,argv) =>{
     let extractSass = new extractTextWebpackPlugin({
         filename:'css/[name].[hash].css',
         allChunks: true,
-    })
+    });
+
+
+    let bootstrap = isProd ? boostrapConfig.prod : boostrapConfig.dev; 
     
 return ({    
     entry:{
-        main:['./src/main.ts','./src/style/app.scss'],
-        polyfills:'./src/polyfills.js',
-        vendor:'./src/vendor.js'
+        main: ['./src/main.ts','./src/style/app.scss'],
+        polyfills: './src/polyfills.js',
+        vendor: './src/vendor.js',
+        bootstrap: bootstrap
     },
     resolve:{
         extensions:['.ts','.js','.html','.json','.css','.scss','.sass']
@@ -51,7 +55,12 @@ return ({
                     ],
                     fallback:'style-loader'
                 })
-            }
+            },
+            {
+                test: /\.(png|jpe?g|gif|svg|woff|woff2|tts|eot|ico|ttf)(\?v=[0-9]\.[0-9]\.[0-9])?$/,
+                loaders:['file-loader?name=fonts/[name].[hash].[ext]?', 'url-loader?limit=10000'] 
+            },
+            { test: /bootstrap[\/\\]dist[\/\\]js[\/\\]umd[\/\\]/, loader: 'imports-loader?jQuery=jquery' },
         ]
     },
     plugins:[
@@ -76,7 +85,26 @@ return ({
             @ multi (webpack)-dev-server/client?http://localhost:9090 ./src/vendor.js
         */
         new webpack.ContextReplacementPlugin(/\@angular(\\|\/)core(\\|\/)esm5/, root('./src')),
-        extractSass
+        extractSass,
+        new webpack.ProvidePlugin({
+            $: "jquery",
+            jQuery: "jquery",
+            "window.jQuery": "jquery",
+            Tether: "tether",
+            "window.Tether": "tether",
+            Popper: ['popper.js', 'default'],
+            Alert: "exports-loader?Alert!bootstrap/js/dist/alert",
+            Button: "exports-loader?Button!bootstrap/js/dist/button",
+            Carousel: "exports-loader?Carousel!bootstrap/js/dist/carousel",
+            Collapse: "exports-loader?Collapse!bootstrap/js/dist/collapse",
+            Dropdown: "exports-loader?Dropdown!bootstrap/js/dist/dropdown",
+            Modal: "exports-loader?Modal!bootstrap/js/dist/modal",
+            Popover: "exports-loader?Popover!bootstrap/js/dist/popover",
+            Scrollspy: "exports-loader?Scrollspy!bootstrap/js/dist/scrollspy",
+            Tab: "exports-loader?Tab!bootstrap/js/dist/tab",
+            Tooltip: "exports-loader?Tooltip!bootstrap/js/dist/tooltip",
+            Util: "exports-loader?Util!bootstrap/js/dist/util",
+        })
     ],
     devtool:devtool,
     devServer:{
